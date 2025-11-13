@@ -355,7 +355,7 @@ if __name__ == "__main__":
     # Leer instancia del archivo
     G, VR, ER = read_instance(file_path)
 
-    print(f"Instancia cargada. Nodos: {len(G.nodes())}, Aristas: {len(G.edges())}")
+    print(f"\n\nInstancia cargada. Nodos: {len(G.nodes())}, Aristas: {len(G.edges())}")
     print(f"Nodos requeridos: {VR if VR else 'Ninguno'}")
     print(f"Aristas requeridas: {len(ER)}")
 
@@ -364,3 +364,32 @@ if __name__ == "__main__":
 
     print(f"\nCosto total estimado: {cost:.2f}")
     print("Cantidad de aristas en la solución:", len(edges))
+
+    print("\n---> Detalles de la solucion")
+
+# Mostrar aristas ordenadas
+print("\nAristas del recorrido (u, v):")
+for (u, v) in edges:
+    w = G[u][v]["weight"]
+    print(f"  {u} -- {v}   (costo: {w})")
+
+# Costo total
+print(f"\nCosto total: {cost:.2f}")
+
+# Crear un grafo multiarista para obtener un recorrido euleriano
+M = nx.MultiGraph()
+M.add_nodes_from(G.nodes())
+for (u, v) in edges:
+    M.add_edge(u, v)
+
+# Si es euleriano, mostramos el recorrido
+if nx.is_eulerian(M):
+    route = list(nx.eulerian_circuit(M))
+    print("\nRecorrido Euleriano:")
+    for step in route:
+        print(f"  {step[0]} -> {step[1]}")
+else:
+    print("\n(El multigrafo generado no es completamente euleriano.)")
+
+print("\n----------------------------------------------------------")
+
