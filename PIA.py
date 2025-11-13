@@ -50,8 +50,8 @@ def read_instance(path):
 
 # ===========================================================
 # === FASE 1: COMPONENTES REQUERIDAS ========================
-# Agrupa nodos/aristas requeridas en "supernodos" o componentes.
-# Esta fase reduce el problema antes de aplicar el MST.
+# Agrupa nodos/aristas requeridas en "supernodos" o componentes
+# Esta fase reduce el problema antes de aplicar el MST
 # ===========================================================
 def compute_R_components(G, VR, ER):
 
@@ -89,8 +89,8 @@ def compute_R_components(G, VR, ER):
 # ===========================================================
 # === FASE 2: CAMINOS MÍNIMOS ENTRE COMPONENTES =============
 # Realiza la fase central del heurístico mejorado:
-# Para cada componente requerida, corre Dijkstra y obtiene
-# distancias mínimas hacia todas las demás.
+# Para cada componente requerida, corre Dijkstra y obtien
+# distancias mínimas hacia todas las demás
 # ===========================================================
 def shortest_path_phase(G, components, comp_of, E_of):
 
@@ -133,7 +133,7 @@ def shortest_path_phase(G, components, comp_of, E_of):
 
 # ===========================================================
 # === FASE 3: GRAFO REDUCIDO ENTRE COMPONENTES ==============
-# Construye el grafo "shrunken" donde cada componente es un nodo.
+# Construye el grafo "shrunken" donde cada componente es un nodo
 # ===========================================================
 def build_shrunk_graph(c):
     k = len(c)
@@ -152,8 +152,8 @@ def build_shrunk_graph(c):
 
 # ===========================================================
 # === FASE 4: MST SOBRE EL GRAFO REDUCIDO ===================
-# Después de construir el grafo reducido, sacamos el MST.
-# Luego este MST debe traducirse al grafo real.
+# Después de construir el grafo reducido, sacamos el MST
+# Luego este MST debe traducirse al grafo real
 # ===========================================================
 def map_tree_to_G(mst, T_trees, components):
 
@@ -204,7 +204,7 @@ def map_tree_to_G(mst, T_trees, components):
 # ===========================================================
 # === FASE 5: SPARSIFICACIÓN DE F′ ==========================
 # Aquí se reduce el conjunto preliminar usando un MST
-# para evitar duplicación innecesaria de aristas.
+# para evitar duplicación innecesaria de aristas
 # ===========================================================
 def sparsify_and_get_Fminus(G, VR, ER, components, comp_of, Fprime_counter):
 
@@ -255,7 +255,7 @@ def sparsify_and_get_Fminus(G, VR, ER, components, comp_of, Fprime_counter):
 # ===========================================================
 # === FASE 6 y 7: T-JOIN PARA PARIFICAR Y FINALIZAR =========
 # Construimos un multigrafo con ER + F- y luego añadimos
-# un T-Join mínimo para lograr que todos los grados sean pares.
+# un T-Join mínimo para lograr que todos los grados sean pares
 # ===========================================================
 def add_T_join_and_finalize(G, ER, Fminus):
 
@@ -344,7 +344,6 @@ def improved_c_heuristic_instance(G, VR, ER):
 
 # ===========================================================
 # === MAIN ==================================================
-# Llamada principal desde terminal.
 # ===========================================================
 if __name__ == "__main__":
     if len(sys.argv) < 2:
