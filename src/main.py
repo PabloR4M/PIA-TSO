@@ -70,7 +70,7 @@ def compute_R_components(G, VR, ER):
     # Obtener componentes conectadas de elementos requeridos
     components = list(nx.connected_components(H)) if H.number_of_edges() > 0 else [{v} for v in VR]
 
-    # Diccionario: nodo → id de componente
+    # Diccionario: nodo -> id de componente
     comp_of = {}
     for i, C in enumerate(components):
         for v in C:
@@ -392,4 +392,3 @@ else:
     print("\n(El multigrafo generado no es completamente euleriano.)")
 
 print("\n----------------------------------------------------------")
-
