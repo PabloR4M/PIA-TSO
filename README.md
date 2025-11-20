@@ -2,6 +2,10 @@
 
 PIA de Temas Selectos de Optamizacion
 
+- https://www.lancaster.ac.uk/staff/letchfoa/articles/grp-heuristic.pdf
+
+- https://www.uv.es/corberan/instancias.htm
+
 ## Cómo correr
 
 1. Crear y activar un entorno virtual:
