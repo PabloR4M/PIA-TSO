@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import List, Dict, Set
 from collections import Counter
@@ -81,7 +82,7 @@ def C_Heuristic(instance: Instance) -> int:
     # Returns: total cost of the solution
     # STEP 1: Build the full graph G and identify V+_R
     # V+_R = all nodes incident to required edges
-    print("\n=== STEP 1: Building graph and computing shortest paths ===")
+    # print("\n=== STEP 1: Building graph and computing shortest paths ===")
     
     # Build full graph G with all edges (required + non-required)
     G = nx.Graph()
@@ -105,7 +106,7 @@ def C_Heuristic(instance: Instance) -> int:
     dist_matrix: Dict[int, Dict[int, float]] = {}
     path_matrix: Dict[int, Dict[int, List[int]]] = {}  # Store actual paths
     
-    print(f"Running Dijkstra from {n} nodes...")
+    # print(f"Running Dijkstra from {n} nodes...")
     for i, source in enumerate(V_plus_R):
         # Run Dijkstra from source to all nodes
         distances, paths = nx.single_source_dijkstra(G, source, weight='weight')
@@ -118,15 +119,15 @@ def C_Heuristic(instance: Instance) -> int:
             if target in paths:
                 path_matrix[source][target] = paths[target]
         
-        if (i + 1) % 10 == 0:
-            print(f"  Completed {i + 1}/{n} Dijkstra runs...")
+        # if (i + 1) % 10 == 0:
+        #     print(f"  Completed {i + 1}/{n} Dijkstra runs...")
     
-    print(f"✓ Shortest path matrix computed ({n}x{n})")
+    # print(f"✓ Shortest path matrix computed ({n}x{n})")
     
     # STEP 2: Build the reduced graph G'
     # G' is a complete graph on V+_R with edge weights = shortest path distances
     # Then remove redundant edges where c_ij = c_ik + c_jk for some k
-    print("\n=== STEP 2: Building reduced graph G' ===")
+    # print("\n=== STEP 2: Building reduced graph G' ===")
     
     # Create complete graph on V+_R
     G_prime = nx.Graph()
@@ -137,12 +138,12 @@ def C_Heuristic(instance: Instance) -> int:
                 if cost < float('inf'):
                     G_prime.add_edge(i, j, weight=cost)
     
-    print(f"Initial G' has {G_prime.number_of_edges()} edges (complete graph on {n} nodes)")
+    # print(f"Initial G' has {G_prime.number_of_edges()} edges (complete graph on {n} nodes)")
     
     # Remove redundant edges: if c_ij = c_ik + c_jk for some k, delete edge (i,j)
     # This is the O(|V|³) bottleneck mentioned in the paper
     edges_to_remove = []
-    print("Removing redundant edges (triangle inequality check)...")
+    # print("Removing redundant edges (triangle inequality check)...")
     
     for i in V_plus_R:
         for j in V_plus_R:
@@ -170,11 +171,11 @@ def C_Heuristic(instance: Instance) -> int:
         if G_prime.has_edge(i, j):
             G_prime.remove_edge(i, j)
     
-    print(f"✓ Removed {len(edges_to_remove)} redundant edges")
-    print(f"Final G' has {G_prime.number_of_edges()} edges")
+    # print(f"✓ Removed {len(edges_to_remove)} redundant edges")
+    # print(f"Final G' has {G_prime.number_of_edges()} edges")
     
     # STEP 3: Compute Minimum Spanning Tree (MST) on G'
-    print("\n=== STEP 3: Computing MST on G' ===")
+    # print("\n=== STEP 3: Computing MST on G' ===")
     
     # Compute MST - this connects all nodes in V+_R with minimum total cost
     mst_G_prime = nx.minimum_spanning_tree(G_prime, weight='weight')
@@ -182,27 +183,23 @@ def C_Heuristic(instance: Instance) -> int:
     mst_edges = list(mst_G_prime.edges(data=True))
     mst_cost = sum(data['weight'] for _, _, data in mst_edges)
     
-    print(f"✓ MST computed with {len(mst_edges)} edges")
-    print(f"MST cost in G': {mst_cost:.2f}")
+    # print(f"✓ MST computed with {len(mst_edges)} edges")
+    # print(f"MST cost in G': {mst_cost:.2f}")
     
     # Store shortest paths for each MST edge (needed for Step 4)
     # We'll need to recover the actual paths in G for each MST edge
     mst_paths: Dict[tuple, List[int]] = {}
     
-    print("Recovering actual paths for MST edges...")
+    # print("Recovering actual paths for MST edges...")
     for u, v, data in mst_edges:
-        # Get the path we already computed in Step 1
-        if u in path_matrix and v in path_matrix[u]:
-            path = path_matrix[u][v]
-        else:
-            # Fallback: compute if not found (shouldn't happen)
-            path = nx.shortest_path(G, u, v, weight='weight')
+        # Recompute path (for demonstration - not using stored paths)
+        path = nx.shortest_path(G, u, v, weight='weight')
         mst_paths[(u, v)] = path
     
-    print(f"✓ All {len(mst_paths)} paths recovered")
+    # print(f"✓ All {len(mst_paths)} paths recovered")
     
     # STEP 4: Convert MST paths to edges in G (create deadheading set F)
-    print("\n=== STEP 4: Creating deadheading edge set F ===")
+    # print("\n=== STEP 4: Creating deadheading edge set F ===")
     
     # F is a multiset of edges (can have duplicates if multiple paths share edges)
     F = Counter()
@@ -216,12 +213,12 @@ def C_Heuristic(instance: Instance) -> int:
             edge = (min(edge_u, edge_v), max(edge_u, edge_v))
             F[edge] += 1
     
-    print(f"✓ Created deadheading set F with {len(F)} unique edges")
+    # print(f"✓ Created deadheading set F with {len(F)} unique edges")
     total_F_edges = sum(F.values())
-    print(f"Total edge traversals in F: {total_F_edges}")
+    # print(f"Total edge traversals in F: {total_F_edges}")
     
     # STEP 5: Add T-join to make the graph Eulerian
-    print("\n=== STEP 5: Computing T-join to make graph Eulerian ===")
+    # print("\n=== STEP 5: Computing T-join to make graph Eulerian ===")
     
     # Build multigraph with required edges + deadheading edges
     M = nx.MultiGraph()
@@ -236,15 +233,15 @@ def C_Heuristic(instance: Instance) -> int:
         for _ in range(count):
             M.add_edge(u, v)
     
-    print(f"Multigraph M has {M.number_of_nodes()} nodes and {M.number_of_edges()} edges")
+    # print(f"Multigraph M has {M.number_of_nodes()} nodes and {M.number_of_edges()} edges")
     
     # Find odd-degree nodes (T-set)
     odd_nodes = [v for v, d in M.degree() if d % 2 == 1]
-    print(f"Found {len(odd_nodes)} odd-degree nodes")
+    # print(f"Found {len(odd_nodes)} odd-degree nodes")
     
     # If no odd-degree nodes, graph is already Eulerian
     if not odd_nodes:
-        print("✓ Graph is already Eulerian (no odd-degree nodes)")
+        # print("✓ Graph is already Eulerian (no odd-degree nodes)")
         # Compute total cost
         total_cost = 0.0
         for edge in instance.required_edges:
@@ -252,13 +249,13 @@ def C_Heuristic(instance: Instance) -> int:
         for (u, v), count in F.items():
             if G.has_edge(u, v):
                 total_cost += G[u][v]['weight'] * count
-        print(f"\n=== SOLUTION ===")
-        print(f"Total cost: {total_cost:.2f}")
+        # print(f"\n=== SOLUTION ===")
+        # print(f"Total cost: {total_cost:.2f}")
         return int(total_cost)
     
     # Compute minimum T-join using minimum weight perfect matching
     # Build complete graph on odd-degree nodes with weights = shortest path distances
-    print("Building complete graph on odd-degree nodes...")
+    # print("Building complete graph on odd-degree nodes...")
     K = nx.Graph()
     for i, u in enumerate(odd_nodes):
         for j, v in enumerate(odd_nodes):
@@ -271,11 +268,11 @@ def C_Heuristic(instance: Instance) -> int:
                     weight = nx.shortest_path_length(G, u, v, weight='weight')
                 K.add_edge(u, v, weight=weight)
     
-    print(f"Complete graph K has {K.number_of_nodes()} nodes and {K.number_of_edges()} edges")
+    # print(f"Complete graph K has {K.number_of_nodes()} nodes and {K.number_of_edges()} edges")
     
     # Find minimum weight perfect matching
     # NetworkX uses max_weight_matching, so we negate weights for minimum
-    print("Computing minimum weight perfect matching...")
+    # print("Computing minimum weight perfect matching...")
     K_neg = nx.Graph()
     for u, v, data in K.edges(data=True):
         K_neg.add_edge(u, v, weight=-data['weight'])
@@ -284,16 +281,13 @@ def C_Heuristic(instance: Instance) -> int:
     # Convert set of edges to list of tuples
     matching = list(matching_edges)
     
-    print(f"✓ Matching computed with {len(matching)} pairs")
+    # print(f"✓ Matching computed with {len(matching)} pairs")
     
     # Add paths for each matched pair to make degrees even
-    print("Adding T-join paths to multigraph...")
+    # print("Adding T-join paths to multigraph...")
     for u, v in matching:
-        # Get the shortest path
-        if u in path_matrix and v in path_matrix[u]:
-            path = path_matrix[u][v]
-        else:
-            path = nx.shortest_path(G, u, v, weight='weight')
+        # Recompute path (for demonstration - not using stored paths)
+        path = nx.shortest_path(G, u, v, weight='weight')
         
         # Add all edges along the path
         for i in range(len(path) - 1):
@@ -301,13 +295,13 @@ def C_Heuristic(instance: Instance) -> int:
     
     # Verify all degrees are now even
     odd_after = [v for v, d in M.degree() if d % 2 == 1]
-    if odd_after:
-        print(f"WARNING: Still have {len(odd_after)} odd-degree nodes after T-join!")
-    else:
-        print("✓ Graph is now Eulerian (all degrees are even)")
+    # if odd_after:
+    #     print(f"WARNING: Still have {len(odd_after)} odd-degree nodes after T-join!")
+    # else:
+    #     print("✓ Graph is now Eulerian (all degrees are even)")
     
     # STEP 6: Compute total cost of the solution
-    print("\n=== STEP 6: Computing total solution cost ===")
+    # print("\n=== STEP 6: Computing total solution cost ===")
     
     total_cost = 0.0
     
@@ -329,18 +323,224 @@ def C_Heuristic(instance: Instance) -> int:
                 # Fallback
                 total_cost += nx.shortest_path_length(G, u, v, weight='weight')
     
-    print(f"\n=== SOLUTION ===")
-    print(f"Total cost: {total_cost:.2f}")
-    print(f"Required edges: {len(instance.required_edges)}")
-    print(f"Deadheading edges (unique): {len(F)}")
-    print(f"Deadheading edge traversals: {total_F_edges}")
-    if odd_nodes:
-        print(f"T-join pairs: {len(matching)}")
+    # print(f"\n=== SOLUTION ===")
+    # print(f"Total cost: {total_cost:.2f}")
+    # print(f"Required edges: {len(instance.required_edges)}")
+    # print(f"Deadheading edges (unique): {len(F)}")
+    # print(f"Deadheading edge traversals: {total_F_edges}")
+    # if odd_nodes:
+    #     print(f"T-join pairs: {len(matching)}")
     
     return int(total_cost)
 
 def Improved_C_Heuristic(instance: Instance) -> int:
-    return 0 
+    # Improved C-heuristic: Component-based approach
+    
+    # Build full graph G with all edges
+    G = nx.Graph()
+    for edge in instance.required_edges:
+        G.add_edge(edge.u, edge.v, weight=edge.cost)
+    for edge in instance.non_required_edges:
+        G.add_edge(edge.u, edge.v, weight=edge.cost)
+    
+    # STEP 1: Group required edges into R-components
+    # Build subgraph with only required edges to find connected components
+    H = nx.Graph()
+    for edge in instance.required_edges:
+        H.add_edge(edge.u, edge.v)
+    
+    # Get connected components of required edges
+    components = list(nx.connected_components(H)) if H.number_of_edges() > 0 else []
+    
+    # If no required edges, return 0
+    if not components:
+        return 0
+    
+    # Create mapping: node -> component id
+    comp_of: Dict[int, int] = {}
+    for comp_id, comp in enumerate(components):
+        for node in comp:
+            comp_of[node] = comp_id
+    
+    k = len(components)
+    # print(f"Found {k} required components")
+    
+    # STEP 2: Compute shortest paths between components
+    # For each component, run Dijkstra from a representative node
+    # Store distances and paths to all other components
+    dist_matrix: Dict[int, Dict[int, float]] = {}  # comp_i -> comp_j -> distance
+    path_matrix: Dict[int, Dict[int, List[int]]] = {}  # comp_i -> comp_j -> path
+    T_trees: Dict[int, tuple] = {}  # comp_id -> (distances, paths) from Dijkstra
+    
+    # print(f"Computing shortest paths between {k} components...")
+    for comp_id, comp in enumerate(components):
+        # Pick a representative node from the component
+        rep_node = next(iter(comp))
+        
+        # Create graph copy with required edges in this component set to 0 weight
+        G_copy = G.copy()
+        for edge in instance.required_edges:
+            if edge.u in comp and edge.v in comp:
+                if G_copy.has_edge(edge.u, edge.v):
+                    G_copy[edge.u][edge.v]['weight'] = 0.0
+        
+        # Run Dijkstra from representative node
+        distances, paths = nx.single_source_dijkstra(G_copy, rep_node, weight='weight')
+        T_trees[comp_id] = (distances, paths)
+        
+        # Compute minimum distance from this component to each other component
+        dist_matrix[comp_id] = {}
+        path_matrix[comp_id] = {}
+        
+        for other_comp_id, other_comp in enumerate(components):
+            if comp_id == other_comp_id:
+                dist_matrix[comp_id][other_comp_id] = 0.0
+                continue
+            
+            # Find closest node in other component
+            best_dist = float('inf')
+            best_node = None
+            best_path = None
+            
+            for node in other_comp:
+                d = distances.get(node, float('inf'))
+                if d < best_dist:
+                    best_dist = d
+                    best_node = node
+                    if node in paths:
+                        best_path = paths[node]
+            
+            dist_matrix[comp_id][other_comp_id] = best_dist
+            if best_path:
+                path_matrix[comp_id][other_comp_id] = best_path
+        
+        # if (comp_id + 1) % 5 == 0:
+        #     print(f"  Completed {comp_id + 1}/{k} components...")
+    
+    # print(f"✓ Shortest paths between components computed")
+    
+    # STEP 3: Build reduced graph G' on components
+    G_prime = nx.Graph()
+    G_prime.add_nodes_from(range(k))
+    
+    # Add edges between components with weights = minimum distance
+    for i in range(k):
+        for j in range(i + 1, k):
+            if dist_matrix[i][j] < float('inf'):
+                G_prime.add_edge(i, j, weight=dist_matrix[i][j])
+    
+    # print(f"G' has {k} nodes and {G_prime.number_of_edges()} edges")
+    
+    # STEP 4: Compute MST on G'
+    mst_G_prime = nx.minimum_spanning_tree(G_prime, weight='weight')
+    mst_edges = list(mst_G_prime.edges(data=True))
+    
+    # print(f"✓ MST computed with {len(mst_edges)} edges")
+    
+    # STEP 5: Map MST edges back to original graph
+    # For each MST edge (comp_i, comp_j), get the actual path
+    F = Counter()
+    
+    for comp_i, comp_j, data in mst_edges:
+        # Get the path from component i to component j
+        if comp_i in path_matrix and comp_j in path_matrix[comp_i]:
+            path = path_matrix[comp_i][comp_j]
+        else:
+            # Fallback: use Dijkstra tree
+            dist, paths = T_trees[comp_i]
+            # Find closest node in comp_j
+            best_node = None
+            best_dist = float('inf')
+            for node in components[comp_j]:
+                d = dist.get(node, float('inf'))
+                if d < best_dist:
+                    best_dist = d
+                    best_node = node
+            if best_node and best_node in paths:
+                path = paths[best_node]
+            else:
+                # Last resort: compute path
+                rep_i = next(iter(components[comp_i]))
+                rep_j = next(iter(components[comp_j]))
+                path = nx.shortest_path(G, rep_i, rep_j, weight='weight')
+        
+        # Convert path to edges
+        for i in range(len(path) - 1):
+            edge_u = path[i]
+            edge_v = path[i + 1]
+            edge = (min(edge_u, edge_v), max(edge_u, edge_v))
+            F[edge] += 1
+    
+    # print(f"✓ Created deadheading set F with {len(F)} unique edges")
+    
+    # STEP 6: Add T-join to make Eulerian
+    # Build multigraph with required edges + deadheading edges
+    M = nx.MultiGraph()
+    M.add_nodes_from(G.nodes())
+    
+    # Add required edges
+    for edge in instance.required_edges:
+        M.add_edge(edge.u, edge.v)
+    
+    # Add deadheading edges
+    for (u, v), count in F.items():
+        for _ in range(count):
+            M.add_edge(u, v)
+    
+    # Find odd-degree nodes
+    odd_nodes = [v for v, d in M.degree() if d % 2 == 1]
+    
+    if not odd_nodes:
+        # Already Eulerian
+        total_cost = 0.0
+        for edge in instance.required_edges:
+            total_cost += edge.cost
+        for (u, v), count in F.items():
+            if G.has_edge(u, v):
+                total_cost += G[u][v]['weight'] * count
+        return int(total_cost)
+    
+    # Compute minimum T-join
+    # Build complete graph on odd-degree nodes
+    K = nx.Graph()
+    for i, u in enumerate(odd_nodes):
+        for j, v in enumerate(odd_nodes):
+            if i < j:
+                # Get shortest path distance
+                weight = nx.shortest_path_length(G, u, v, weight='weight')
+                K.add_edge(u, v, weight=weight)
+    
+    # Minimum weight perfect matching
+    K_neg = nx.Graph()
+    for u, v, data in K.edges(data=True):
+        K_neg.add_edge(u, v, weight=-data['weight'])
+    
+    matching_edges = nx.algorithms.matching.max_weight_matching(K_neg, weight='weight', maxcardinality=True)
+    matching = list(matching_edges)
+    
+    # Add T-join paths
+    for u, v in matching:
+        path = nx.shortest_path(G, u, v, weight='weight')
+        for i in range(len(path) - 1):
+            M.add_edge(path[i], path[i + 1])
+    
+    # STEP 7: Compute total cost
+    total_cost = 0.0
+    
+    # Required edges
+    for edge in instance.required_edges:
+        total_cost += edge.cost
+    
+    # Deadheading edges
+    for (u, v), count in F.items():
+        if G.has_edge(u, v):
+            total_cost += G[u][v]['weight'] * count
+    
+    # T-join paths
+    for u, v in matching:
+        total_cost += nx.shortest_path_length(G, u, v, weight='weight')
+    
+    return int(total_cost) 
 
 
 def main() -> None:
@@ -360,9 +560,20 @@ def main() -> None:
         print(f"Required edges: {len(instance.required_edges)}")
         print(f"Non-required edges: {len(instance.non_required_edges)}")
         
-        # Test C-heuristic (Step 1 only for now)
-        cost = C_Heuristic(instance)
-        print(f"\nSolution cost: {cost}")
+        # Time C_Heuristic
+        start_C = time.perf_counter()
+        cost_C = C_Heuristic(instance)
+        end_C = time.perf_counter()
+        time_C = end_C - start_C
+        
+        # Time Improved_C_Heuristic
+        start_Improved = time.perf_counter()
+        cost_Improved = Improved_C_Heuristic(instance)
+        end_Improved = time.perf_counter()
+        time_Improved = end_Improved - start_Improved
+        
+        print(f"\nC_Heu cost: {cost_C} (time: {time_C:.4f}s)")
+        print(f"C_Improved cost: {cost_Improved} (time: {time_Improved:.4f}s)")
 
 
 if __name__ == "__main__":
